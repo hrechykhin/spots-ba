@@ -1,0 +1,56 @@
+from django.http import JsonResponse
+from rest_framework import generics
+from rest_framework.exceptions import NotFound
+
+from .models import Cafe
+from .serializers import CafeMapPinSerializer, CafeListSerializer, CafeDetailSerializer
+
+
+class CafeMapView(generics.ListAPIView):
+    serializer_class = CafeMapPinSerializer
+    queryset = Cafe.objects.filter(is_published=True)
+
+
+class CafeListView(generics.ListAPIView):
+    serializer_class = CafeListSerializer
+
+    def get_queryset(self):
+        qs = Cafe.objects.filter(is_published=True)
+        params = self.request.query_params
+
+        if district := params.get("district"):
+            qs = qs.filter(district=district)
+        if min_rating := params.get("min_rating"):
+            qs = qs.filter(google_rating__gte=float(min_rating))
+        if q := params.get("q"):
+            qs = qs.filter(name__icontains=q)
+        if tags := params.get("tags"):
+            for tag in tags.split(","):
+                qs = qs.filter(tags__contains=[tag.strip()])
+
+        limit = min(int(params.get("limit", 20)), 100)
+        offset = int(params.get("offset", 0))
+        return qs[offset: offset + limit]
+
+
+class CafeDetailView(generics.RetrieveAPIView):
+    serializer_class = CafeDetailSerializer
+
+    def get_object(self):
+        val = self.kwargs["pk"]
+        qs = Cafe.objects.filter(is_published=True)
+        try:
+            return qs.get(slug=val)
+        except Cafe.DoesNotExist:
+            pass
+        try:
+            return qs.get(pk=val)
+        except (Cafe.DoesNotExist, Exception):
+            raise NotFound("Cafe not found.")
+
+
+def bookings_stub(request, **kwargs):
+    return JsonResponse(
+        {"detail": "Booking feature is coming soon. Stay tuned!"},
+        status=501,
+    )
