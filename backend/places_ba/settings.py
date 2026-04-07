@@ -84,6 +84,12 @@ CORS_ALLOWED_ORIGINS = [
     if o.strip()
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://localhost:8001").split(",")
+    if o.strip()
+]
+
 GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
 
 REST_FRAMEWORK = {
