@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from rest_framework import generics
 from rest_framework.exceptions import NotFound
+from rest_framework.response import Response
 
 from .models import Cafe
 from .serializers import CafeMapPinSerializer, CafeListSerializer, CafeDetailSerializer
@@ -14,7 +15,7 @@ class CafeMapView(generics.ListAPIView):
 class CafeListView(generics.ListAPIView):
     serializer_class = CafeListSerializer
 
-    def get_queryset(self):
+    def _get_filtered_qs(self):
         qs = Cafe.objects.filter(is_published=True)
         params = self.request.query_params
 
@@ -27,10 +28,16 @@ class CafeListView(generics.ListAPIView):
         if tags := params.get("tags"):
             for tag in tags.split(","):
                 qs = qs.filter(tags__contains=[tag.strip()])
+        return qs
 
-        limit = min(int(params.get("limit", 20)), 100)
+    def list(self, request, *args, **kwargs):
+        qs = self._get_filtered_qs()
+        total = qs.count()
+        params = request.query_params
+        limit = min(int(params.get("limit", 9)), 100)
         offset = int(params.get("offset", 0))
-        return qs[offset: offset + limit]
+        serializer = self.get_serializer(qs[offset: offset + limit], many=True)
+        return Response({"total": total, "results": serializer.data})
 
 
 class CafeDetailView(generics.RetrieveAPIView):

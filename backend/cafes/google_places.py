@@ -25,6 +25,7 @@ DETAIL_FIELDS = ",".join([
     "regularOpeningHours",
     "googleMapsUri",
     "addressComponents",
+    "photos",
 ])
 
 SEARCH_FIELDS = ",".join([
@@ -92,6 +93,26 @@ def get_place_details(place_id: str) -> dict:
     return resp.json()
 
 
+def get_photo_url(photo_name: str, max_width: int = 800) -> str | None:
+    """
+    Resolve a Places API photo resource name to a CDN URL.
+    Uses skipHttpRedirect=true to get the URL without exposing the API key in storage.
+    """
+    url = f"{PLACES_BASE}/{photo_name}/media"
+    params = {
+        "maxWidthPx": max_width,
+        "key": _api_key(),
+        "skipHttpRedirect": "true",
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        resp.raise_for_status()
+        return resp.json().get("photoUri")
+    except Exception as exc:
+        logger.warning("Failed to fetch photo %s: %s", photo_name, exc)
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Converters
 # ---------------------------------------------------------------------------
@@ -126,13 +147,17 @@ def _extract_district(place: dict) -> str | None:
     return None
 
 
-def place_to_cafe_fields(place: dict) -> dict:
+def place_to_cafe_fields(place: dict, max_photos: int = 5) -> dict:
     """
     Convert a Google Places API place dict to a dict of Cafe model field values.
     Only includes fields that have a non-None value.
     """
     loc = place.get("location", {})
     name = place.get("displayName", {}).get("text", "")
+
+    # Resolve photo resource names to CDN URLs
+    photo_refs = place.get("photos", [])[:max_photos]
+    photos = [url for ref in photo_refs if (url := get_photo_url(ref["name"]))]
 
     fields = {
         "google_place_id": place.get("id"),
@@ -147,6 +172,7 @@ def place_to_cafe_fields(place: dict) -> dict:
         "google_maps_url": place.get("googleMapsUri"),
         "opening_hours": _parse_opening_hours(place),
         "district": _extract_district(place),
+        "photos": photos if photos else None,
     }
 
     return {k: v for k, v in fields.items() if v is not None}

@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: places_ba
       POSTGRES_PASSWORD: places_ba
     ports:
-      - "5434:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -22,7 +22,7 @@ services:
     environment:
       DATABASE_URL: postgresql://places_ba:places_ba@db:5432/places_ba
     ports:
-      - "8001:8000"
+      - "8002:8000"
     restart: unless-stopped
     depends_on:
       db:

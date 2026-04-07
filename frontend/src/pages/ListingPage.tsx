@@ -15,23 +15,39 @@ const ALL_TAGS = [
   'roastery',
 ]
 
+const PAGE_SIZE = 9
+
 export function ListingPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [district, setDistrict] = useState('')
   const [minRating, setMinRating] = useState<number | undefined>()
+  const [page, setPage] = useState(0)
 
   const filters = {
     tags: selectedTags.length > 0 ? selectedTags.join(',') : undefined,
     district: district || undefined,
     min_rating: minRating,
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
   }
 
-  const { data: cafes, isLoading, isError } = useCafes(filters)
+  const { data, isLoading, isError } = useCafes(filters)
+  const cafes = data?.results
+  const total = data?.total ?? 0
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  function resetFilters() {
+    setSelectedTags([])
+    setDistrict('')
+    setMinRating(undefined)
+    setPage(0)
+  }
 
   function toggleTag(tag: string) {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
+    setPage(0)
   }
 
   return (
@@ -81,7 +97,7 @@ export function ListingPage() {
           <div className="flex flex-wrap gap-2">
             <select
               value={district}
-              onChange={(e) => setDistrict(e.target.value)}
+              onChange={(e) => { setDistrict(e.target.value); setPage(0) }}
               className="text-sm border border-stone-200 rounded-lg px-3 py-1.5 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
               <option value="">All districts</option>
@@ -92,7 +108,7 @@ export function ListingPage() {
 
             <select
               value={minRating ?? ''}
-              onChange={(e) => setMinRating(e.target.value ? Number(e.target.value) : undefined)}
+              onChange={(e) => { setMinRating(e.target.value ? Number(e.target.value) : undefined); setPage(0) }}
               className="text-sm border border-stone-200 rounded-lg px-3 py-1.5 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
               <option value="">Any rating</option>
@@ -103,7 +119,7 @@ export function ListingPage() {
 
             {(selectedTags.length > 0 || district || minRating) && (
               <button
-                onClick={() => { setSelectedTags([]); setDistrict(''); setMinRating(undefined) }}
+                onClick={resetFilters}
                 className="text-sm text-stone-500 hover:text-stone-700 px-3 py-1.5 underline"
               >
                 Clear filters
@@ -137,10 +153,7 @@ export function ListingPage() {
         {cafes && cafes.length === 0 && (
           <div className="text-center py-16 text-stone-500">
             <p className="text-lg">No cafes match your filters.</p>
-            <button
-              onClick={() => { setSelectedTags([]); setDistrict(''); setMinRating(undefined) }}
-              className="mt-3 text-amber-700 hover:underline font-medium"
-            >
+            <button onClick={resetFilters} className="mt-3 text-amber-700 hover:underline font-medium">
               Clear filters
             </button>
           </div>
@@ -148,11 +161,32 @@ export function ListingPage() {
 
         {cafes && cafes.length > 0 && (
           <>
-            <p className="text-sm text-stone-500 mb-4">{cafes.length} cafe{cafes.length !== 1 ? 's' : ''} found</p>
+            <p className="text-sm text-stone-500 mb-4">
+              {total} cafe{total !== 1 ? 's' : ''} found — page {page + 1} of {totalPages}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {cafes.map((cafe) => (
                 <CafeCard key={cafe.id} cafe={cafe} />
               ))}
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <button
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 0}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ← Prev
+              </button>
+              <span className="text-sm text-stone-500">{page + 1} / {totalPages}</span>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= totalPages - 1}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
             </div>
           </>
         )}

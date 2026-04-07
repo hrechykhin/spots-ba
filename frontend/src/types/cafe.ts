@@ -34,3 +34,8 @@ export interface CafeFilters {
   limit?: number
   offset?: number
 }
+
+export interface CafeListResponse {
+  total: number
+  results: CafeListItem[]
+}
