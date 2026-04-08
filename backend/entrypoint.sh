@@ -4,9 +4,6 @@ set -e
 echo "Running database migrations..."
 python manage.py migrate
 
-echo "Seeding initial cafe data..."
-python manage.py seed_cafes
-
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 

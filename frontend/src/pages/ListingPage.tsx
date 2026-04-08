@@ -56,10 +56,10 @@ export function ListingPage() {
       <header className="bg-white border-b border-stone-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-stone-900 tracking-tight">
-              ☕ Places BA
-            </h1>
-            <p className="text-xs text-stone-500">Cafes in Bratislava</p>
+            <button onClick={() => { resetFilters(); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="text-left">
+              <h1 className="text-xl font-bold text-stone-900 tracking-tight">☕ Spots BA</h1>
+              <p className="text-xs text-stone-500">Cafes in Bratislava</p>
+            </button>
           </div>
           <Link
             to="/map"
@@ -173,7 +173,7 @@ export function ListingPage() {
             {/* Pagination */}
             <div className="flex items-center justify-center gap-2 mt-8">
               <button
-                onClick={() => setPage((p) => p - 1)}
+                onClick={() => { setPage((p) => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                 disabled={page === 0}
                 className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -181,7 +181,7 @@ export function ListingPage() {
               </button>
               <span className="text-sm text-stone-500">{page + 1} / {totalPages}</span>
               <button
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => { setPage((p) => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                 disabled={page >= totalPages - 1}
                 className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
               >
