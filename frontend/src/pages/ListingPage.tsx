@@ -173,7 +173,7 @@ export function ListingPage() {
             {/* Pagination */}
             <div className="flex items-center justify-center gap-2 mt-8">
               <button
-                onClick={() => { setPage((p) => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                onClick={() => { setPage((p) => p - 1); document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }}
                 disabled={page === 0}
                 className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -181,7 +181,7 @@ export function ListingPage() {
               </button>
               <span className="text-sm text-stone-500">{page + 1} / {totalPages}</span>
               <button
-                onClick={() => { setPage((p) => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                onClick={() => { setPage((p) => p + 1); document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }}
                 disabled={page >= totalPages - 1}
                 className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
               >
