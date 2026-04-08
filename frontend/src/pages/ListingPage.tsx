@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { CafeCard } from '../components/CafeCard'
 import { useCafes } from '../hooks/useCafes'
@@ -22,11 +22,22 @@ export function ListingPage() {
   const [district, setDistrict] = useState('')
   const [minRating, setMinRating] = useState<number | undefined>()
   const [page, setPage] = useState(0)
+  const [searchInput, setSearchInput] = useState('')
+  const [q, setQ] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQ(searchInput)
+      setPage(0)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
   const filters = {
     tags: selectedTags.length > 0 ? selectedTags.join(',') : undefined,
     district: district || undefined,
     min_rating: minRating,
+    q: q || undefined,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
   }
@@ -40,6 +51,8 @@ export function ListingPage() {
     setSelectedTags([])
     setDistrict('')
     setMinRating(undefined)
+    setSearchInput('')
+    setQ('')
     setPage(0)
   }
 
@@ -76,6 +89,28 @@ export function ListingPage() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Filters */}
         <div className="mb-6 space-y-3">
+          {/* Search */}
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search cafes…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            {searchInput && (
+              <button
+                onClick={() => setSearchInput('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           {/* Tag chips */}
           <div className="flex flex-wrap gap-2">
             {ALL_TAGS.map((tag) => (
@@ -117,7 +152,7 @@ export function ListingPage() {
               <option value="3.5">★ 3.5+</option>
             </select>
 
-            {(selectedTags.length > 0 || district || minRating) && (
+            {(selectedTags.length > 0 || district || minRating || q) && (
               <button
                 onClick={resetFilters}
                 className="text-sm text-stone-500 hover:text-stone-700 px-3 py-1.5 underline"
