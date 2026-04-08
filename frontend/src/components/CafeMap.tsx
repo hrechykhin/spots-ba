@@ -1,4 +1,5 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import type { CafeMapPin } from '../types/cafe'
@@ -20,6 +21,21 @@ const AMBER_ICON = new L.Icon({
   shadowSize: [41, 41],
 })
 
+const USER_ICON = new L.DivIcon({
+  className: '',
+  html: '<div style="width:14px;height:14px;background:#3b82f6;border:2px solid white;border-radius:50%;box-shadow:0 0 0 3px rgba(59,130,246,0.35)"></div>',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+})
+
+function FlyTo({ position }: { position: [number, number] }) {
+  const map = useMap()
+  useEffect(() => {
+    map.flyTo(position, 15, { duration: 1.2 })
+  }, [position, map])
+  return null
+}
+
 // Bratislava old town center
 const BRATISLAVA_CENTER: [number, number] = [48.1486, 17.1077]
 
@@ -28,9 +44,10 @@ interface CafeMapProps {
   singleMarker?: boolean
   zoom?: number
   height?: string
+  userLocation?: [number, number] | null
 }
 
-export function CafeMap({ cafes, singleMarker = false, zoom = 13, height = '100%' }: CafeMapProps) {
+export function CafeMap({ cafes, singleMarker = false, zoom = 13, height = '100%', userLocation }: CafeMapProps) {
   const center: [number, number] = singleMarker && cafes.length === 1
     ? [cafes[0].latitude, cafes[0].longitude]
     : BRATISLAVA_CENTER
@@ -46,6 +63,14 @@ export function CafeMap({ cafes, singleMarker = false, zoom = 13, height = '100%
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
+      {userLocation && (
+        <>
+          <FlyTo position={userLocation} />
+          <Marker position={userLocation} icon={USER_ICON}>
+            <Popup><span className="text-sm font-medium">You are here</span></Popup>
+          </Marker>
+        </>
+      )}
       {cafes.map((cafe) => (
         <Marker key={cafe.id} position={[cafe.latitude, cafe.longitude]} icon={AMBER_ICON}>
           {!singleMarker && (

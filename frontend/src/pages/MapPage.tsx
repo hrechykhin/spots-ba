@@ -7,6 +7,20 @@ import { useMapPins } from '../hooks/useCafes'
 export function MapPage() {
   const { data: cafes, isLoading, isError } = useMapPins()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
+  const [locating, setLocating] = useState(false)
+
+  function locateMe() {
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude])
+        setLocating(false)
+      },
+      () => setLocating(false)
+    )
+  }
 
   return (
     <div className="flex flex-col h-screen bg-stone-50">
@@ -27,6 +41,16 @@ export function MapPage() {
         {cafes && (
           <span className="text-sm text-stone-500 ml-auto">{cafes.length} cafes</span>
         )}
+        <button
+          onClick={locateMe}
+          disabled={locating}
+          className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 0v4m0 12v4M2 12h4m12 0h4" />
+          </svg>
+          {locating ? 'Locating…' : 'Locate me'}
+        </button>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -80,6 +104,7 @@ export function MapPage() {
               cafes={cafes}
               zoom={13}
               height="100%"
+              userLocation={userLocation}
             />
           )}
         </div>
