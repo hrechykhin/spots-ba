@@ -2,7 +2,7 @@
 
 A cafe discovery app for Bratislava. Browse, filter, and map specialty coffee spots across the city.
 
-**Stack:** React · Django · PostgreSQL · Docker
+**Live:** [talented-emotion-production.up.railway.app](https://talented-emotion-production.up.railway.app) &nbsp;·&nbsp; **Stack:** React · Django · PostgreSQL · Docker
 
 ---
 
