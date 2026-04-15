@@ -4,6 +4,16 @@ import { CafeMap } from '../components/CafeMap'
 import { RatingBadge } from '../components/RatingBadge'
 import { useMapPins } from '../hooks/useCafes'
 
+function distanceKm(a: [number, number], b: [number, number]): number {
+  const R = 6371
+  const dLat = ((b[0] - a[0]) * Math.PI) / 180
+  const dLon = ((b[1] - a[1]) * Math.PI) / 180
+  const lat1 = (a[0] * Math.PI) / 180
+  const lat2 = (b[0] * Math.PI) / 180
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
+}
+
 export function MapPage() {
   const { data: cafes, isLoading, isError } = useMapPins()
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -69,27 +79,45 @@ export function MapPage() {
           {isError && (
             <p className="p-4 text-sm text-stone-500">Could not load cafes.</p>
           )}
-          {cafes?.map((cafe) => (
-            <button
-              key={cafe.id}
-              onClick={() => setSelectedId(cafe.id === selectedId ? null : cafe.id)}
-              className={`text-left px-4 py-3 border-b border-stone-100 hover:bg-amber-50 transition-colors ${
-                selectedId === cafe.id ? 'bg-amber-50 border-l-2 border-l-amber-500' : ''
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-sm text-stone-900 truncate">{cafe.name}</span>
-                <RatingBadge rating={cafe.google_rating} size="sm" />
-              </div>
-              <Link
-                to={`/cafe/${cafe.id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-xs text-amber-700 hover:underline mt-0.5 inline-block"
+          {(userLocation
+            ? [...(cafes ?? [])].sort((a, b) =>
+                distanceKm(userLocation, [a.latitude, a.longitude]) -
+                distanceKm(userLocation, [b.latitude, b.longitude])
+              )
+            : cafes ?? []
+          ).map((cafe) => {
+            const dist = userLocation
+              ? distanceKm(userLocation, [cafe.latitude, cafe.longitude])
+              : null
+            return (
+              <button
+                key={cafe.id}
+                onClick={() => setSelectedId(cafe.id === selectedId ? null : cafe.id)}
+                className={`text-left px-4 py-3 border-b border-stone-100 hover:bg-amber-50 transition-colors ${
+                  selectedId === cafe.id ? 'bg-amber-50 border-l-2 border-l-amber-500' : ''
+                }`}
               >
-                View details →
-              </Link>
-            </button>
-          ))}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-sm text-stone-900 truncate">{cafe.name}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {dist != null && (
+                      <span className="text-xs text-blue-600 font-medium">
+                        {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`}
+                      </span>
+                    )}
+                    <RatingBadge rating={cafe.google_rating} size="sm" />
+                  </div>
+                </div>
+                <Link
+                  to={`/cafe/${cafe.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs text-amber-700 hover:underline mt-0.5 inline-block"
+                >
+                  View details →
+                </Link>
+              </button>
+            )
+          })}
         </aside>
 
         {/* Map */}

@@ -4,7 +4,7 @@ from .models import Cafe
 _MAP_PIN_FIELDS = ["id", "name", "latitude", "longitude", "google_rating"]
 _LIST_FIELDS = [*_MAP_PIN_FIELDS,
                 "slug", "address", "district", "tags", "photos",
-                "accepts_bookings", "google_review_count"]
+                "accepts_bookings", "google_review_count", "opening_hours"]
 _DETAIL_FIELDS = [*_LIST_FIELDS,
                   "description", "phone", "website", "instagram",
                   "google_maps_url", "google_place_id", "opening_hours"]

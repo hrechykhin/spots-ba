@@ -14,6 +14,7 @@ export function fetchCafes(filters: CafeFilters = {}): Promise<CafeListResponse>
   if (filters.min_rating != null) params.set('min_rating', String(filters.min_rating))
   if (filters.tags) params.set('tags', filters.tags)
   if (filters.q) params.set('q', filters.q)
+  if (filters.ordering) params.set('ordering', filters.ordering)
   if (filters.limit != null) params.set('limit', String(filters.limit))
   if (filters.offset != null) params.set('offset', String(filters.offset))
   const qs = params.toString()

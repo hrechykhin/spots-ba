@@ -14,6 +14,7 @@ export interface CafeListItem extends CafeMapPin {
   photos: string[] | null
   accepts_bookings: boolean
   google_review_count: number | null
+  opening_hours: Record<string, string> | null
 }
 
 export interface CafeDetail extends CafeListItem {
@@ -31,6 +32,7 @@ export interface CafeFilters {
   min_rating?: number
   tags?: string
   q?: string
+  ordering?: string
   limit?: number
   offset?: number
 }

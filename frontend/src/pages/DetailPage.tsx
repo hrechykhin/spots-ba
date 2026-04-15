@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useCafe } from '../hooks/useCafes'
 import { RatingBadge } from '../components/RatingBadge'
@@ -8,6 +9,14 @@ import { CafeMap } from '../components/CafeMap'
 export function DetailPage() {
   const { id } = useParams<{ id: string }>()
   const { data: cafe, isLoading, isError } = useCafe(id ?? '')
+  const [copied, setCopied] = useState(false)
+
+  function share() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   if (isLoading) {
     return (
@@ -56,6 +65,26 @@ export function DetailPage() {
           </Link>
           <span className="text-stone-300">/</span>
           <span className="text-sm text-stone-500 truncate">{cafe.name}</span>
+          <button
+            onClick={share}
+            className="ml-auto flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-700 px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
+          >
+            {copied ? (
+              <>
+                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Share
+              </>
+            )}
+          </button>
         </div>
       </div>
 

@@ -28,6 +28,13 @@ class CafeListView(generics.ListAPIView):
         if tags := params.get("tags"):
             for tag in tags.split(","):
                 qs = qs.filter(tags__contains=[tag.strip()])
+        ordering = params.get("ordering", "rating")
+        if ordering == "reviews":
+            qs = qs.order_by("-google_review_count")
+        elif ordering == "name":
+            qs = qs.order_by("name")
+        else:
+            qs = qs.order_by("-google_rating")
         return qs
 
     def list(self, request, *args, **kwargs):

@@ -17,10 +17,40 @@ const ALL_TAGS = [
 
 const PAGE_SIZE = 9
 
+function getTodayKey(): string {
+  const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+  const day = new Date().getDay()
+  return DAYS[day === 0 ? 6 : day - 1]
+}
+
+function toMinutes(h: string, m: string, period: string): number {
+  let hours = parseInt(h)
+  if (period === 'PM' && hours !== 12) hours += 12
+  if (period === 'AM' && hours === 12) hours = 0
+  return hours * 60 + parseInt(m)
+}
+
+function isOpenNow(hours: Record<string, string> | null): boolean {
+  if (!hours) return false
+  const todayHours = hours[getTodayKey()]
+  if (!todayHours || todayHours === 'Closed') return false
+  const match = todayHours.match(
+    /^(\d{1,2}):(\d{2})\s*(AM|PM)\s*[\u2013-]\s*(\d{1,2}):(\d{2})\s*(AM|PM)$/i
+  )
+  if (!match) return false
+  const now = new Date()
+  const nowMin = now.getHours() * 60 + now.getMinutes()
+  const openMin = toMinutes(match[1], match[2], match[3].toUpperCase())
+  const closeMin = toMinutes(match[4], match[5], match[6].toUpperCase())
+  return nowMin >= openMin && nowMin < closeMin
+}
+
 export function ListingPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [district, setDistrict] = useState('')
   const [minRating, setMinRating] = useState<number | undefined>()
+  const [ordering, setOrdering] = useState('rating')
+  const [openNow, setOpenNow] = useState(false)
   const [page, setPage] = useState(0)
   const [searchInput, setSearchInput] = useState('')
   const [q, setQ] = useState('')
@@ -38,19 +68,24 @@ export function ListingPage() {
     district: district || undefined,
     min_rating: minRating,
     q: q || undefined,
-    limit: PAGE_SIZE,
-    offset: page * PAGE_SIZE,
+    ordering,
+    limit: openNow ? 200 : PAGE_SIZE,
+    offset: openNow ? 0 : page * PAGE_SIZE,
   }
 
   const { data, isLoading, isError } = useCafes(filters)
-  const cafes = data?.results
-  const total = data?.total ?? 0
-  const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  const allCafes = data?.results ?? []
+  const cafes = openNow ? allCafes.filter((c) => isOpenNow(c.opening_hours)) : allCafes
+  const total = openNow ? cafes.length : (data?.total ?? 0)
+  const totalPages = openNow ? 1 : Math.ceil((data?.total ?? 0) / PAGE_SIZE)
 
   function resetFilters() {
     setSelectedTags([])
     setDistrict('')
     setMinRating(undefined)
+    setOrdering('rating')
+    setOpenNow(false)
     setSearchInput('')
     setQ('')
     setPage(0)
@@ -62,6 +97,8 @@ export function ListingPage() {
     )
     setPage(0)
   }
+
+  const hasFilters = selectedTags.length > 0 || district || minRating || q || openNow || ordering !== 'rating'
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -111,7 +148,7 @@ export function ListingPage() {
             )}
           </div>
 
-          {/* Tag chips */}
+          {/* Tag chips + Open now */}
           <div className="flex flex-wrap gap-2">
             {ALL_TAGS.map((tag) => (
               <button
@@ -126,9 +163,20 @@ export function ListingPage() {
                 {tag}
               </button>
             ))}
+            <button
+              onClick={() => { setOpenNow((v) => !v); setPage(0) }}
+              className={`text-sm px-3 py-1.5 rounded-full border transition-colors font-medium flex items-center gap-1.5 ${
+                openNow
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-white text-stone-600 border-stone-200 hover:border-emerald-400 hover:text-emerald-700'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${openNow ? 'bg-white' : 'bg-emerald-500'}`} />
+              Open now
+            </button>
           </div>
 
-          {/* District + rating */}
+          {/* District + rating + sort */}
           <div className="flex flex-wrap gap-2">
             <select
               value={district}
@@ -152,7 +200,17 @@ export function ListingPage() {
               <option value="3.5">★ 3.5+</option>
             </select>
 
-            {(selectedTags.length > 0 || district || minRating || q) && (
+            <select
+              value={ordering}
+              onChange={(e) => { setOrdering(e.target.value); setPage(0) }}
+              className="text-sm border border-stone-200 rounded-lg px-3 py-1.5 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value="rating">Top rated</option>
+              <option value="reviews">Most reviewed</option>
+              <option value="name">Name A–Z</option>
+            </select>
+
+            {hasFilters && (
               <button
                 onClick={resetFilters}
                 className="text-sm text-stone-500 hover:text-stone-700 px-3 py-1.5 underline"
@@ -185,7 +243,7 @@ export function ListingPage() {
           </div>
         )}
 
-        {cafes && cafes.length === 0 && (
+        {cafes && cafes.length === 0 && !isLoading && (
           <div className="text-center py-16 text-stone-500">
             <p className="text-lg">No cafes match your filters.</p>
             <button onClick={resetFilters} className="mt-3 text-amber-700 hover:underline font-medium">
@@ -197,7 +255,8 @@ export function ListingPage() {
         {cafes && cafes.length > 0 && (
           <>
             <p className="text-sm text-stone-500 mb-4">
-              {total} cafe{total !== 1 ? 's' : ''} found — page {page + 1} of {totalPages}
+              {total} cafe{total !== 1 ? 's' : ''} found
+              {!openNow && totalPages > 1 && ` — page ${page + 1} of ${totalPages}`}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {cafes.map((cafe) => (
@@ -205,24 +264,26 @@ export function ListingPage() {
               ))}
             </div>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-center gap-2 mt-8">
-              <button
-                onClick={() => { setPage((p) => p - 1); document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }}
-                disabled={page === 0}
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                ← Prev
-              </button>
-              <span className="text-sm text-stone-500">{page + 1} / {totalPages}</span>
-              <button
-                onClick={() => { setPage((p) => p + 1); document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }}
-                disabled={page >= totalPages - 1}
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Next →
-              </button>
-            </div>
+            {/* Pagination — hidden when Open now is active */}
+            {!openNow && totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <button
+                  onClick={() => { setPage((p) => p - 1); document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }}
+                  disabled={page === 0}
+                  className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ← Prev
+                </button>
+                <span className="text-sm text-stone-500">{page + 1} / {totalPages}</span>
+                <button
+                  onClick={() => { setPage((p) => p + 1); document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }}
+                  disabled={page >= totalPages - 1}
+                  className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
