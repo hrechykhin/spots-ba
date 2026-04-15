@@ -1,15 +1,25 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useCafe } from '../hooks/useCafes'
+import { useCafe, useCafes } from '../hooks/useCafes'
+import { useFavorites } from '../hooks/useFavorites'
 import { RatingBadge } from '../components/RatingBadge'
 import { OpeningHours } from '../components/OpeningHours'
 import { PhotoGallery } from '../components/PhotoGallery'
 import { CafeMap } from '../components/CafeMap'
+import { CafeCard } from '../components/CafeCard'
 
 export function DetailPage() {
   const { id } = useParams<{ id: string }>()
   const { data: cafe, isLoading, isError } = useCafe(id ?? '')
   const [copied, setCopied] = useState(false)
+  const { isFavorite, toggle } = useFavorites()
+
+  const { data: similarData } = useCafes(
+    cafe
+      ? { tags: cafe.tags?.[0] ? cafe.tags[0] : undefined, district: cafe.district ?? undefined, limit: 4 }
+      : {},
+  )
+  const similar = (similarData?.results ?? []).filter((c) => c.id !== cafe?.id).slice(0, 3)
 
   function share() {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -66,8 +76,22 @@ export function DetailPage() {
           <span className="text-stone-300">/</span>
           <span className="text-sm text-stone-500 truncate">{cafe.name}</span>
           <button
+            onClick={() => toggle(cafe.id)}
+            className="ml-auto flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
+            aria-label={isFavorite(cafe.id) ? 'Remove from favorites' : 'Save'}
+          >
+            <svg
+              className={`w-4 h-4 transition-colors ${isFavorite(cafe.id) ? 'fill-red-500 text-red-500' : 'fill-none text-stone-400'}`}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            {isFavorite(cafe.id) ? 'Saved' : 'Save'}
+          </button>
+          <button
             onClick={share}
-            className="ml-auto flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-700 px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-700 px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
           >
             {copied ? (
               <>
@@ -195,6 +219,16 @@ export function DetailPage() {
             <CafeMap cafes={[mapPin]} singleMarker height="224px" />
           </div>
         </section>
+
+        {/* Similar cafes */}
+        {similar.length > 0 && (
+          <section>
+            <h2 className="text-base font-semibold text-stone-900 mb-3">You might also like</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {similar.map((c) => <CafeCard key={c.id} cafe={c} />)}
+            </div>
+          </section>
+        )}
 
         {/* Book a table — coming soon */}
         <section className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">

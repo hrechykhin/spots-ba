@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { CafeCard } from '../components/CafeCard'
 import { useCafes } from '../hooks/useCafes'
+import { useFavorites } from '../hooks/useFavorites'
 
 const DISTRICTS = ['Staré Mesto', 'Nové Mesto', 'Ružinov', 'Petržalka', 'Dúbravka']
 
@@ -46,6 +47,8 @@ function isOpenNow(hours: Record<string, string> | null): boolean {
 }
 
 export function ListingPage() {
+  const { favorites } = useFavorites()
+  const [showSaved, setShowSaved] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [district, setDistrict] = useState('')
   const [minRating, setMinRating] = useState<number | undefined>()
@@ -63,22 +66,26 @@ export function ListingPage() {
     return () => clearTimeout(timer)
   }, [searchInput])
 
+  const clientFilter = openNow || showSaved
+
   const filters = {
     tags: selectedTags.length > 0 ? selectedTags.join(',') : undefined,
     district: district || undefined,
     min_rating: minRating,
     q: q || undefined,
     ordering,
-    limit: openNow ? 200 : PAGE_SIZE,
-    offset: openNow ? 0 : page * PAGE_SIZE,
+    limit: clientFilter ? 200 : PAGE_SIZE,
+    offset: clientFilter ? 0 : page * PAGE_SIZE,
   }
 
   const { data, isLoading, isError } = useCafes(filters)
+  const { data: allData } = useCafes({ limit: 200 })
 
-  const allCafes = data?.results ?? []
-  const cafes = openNow ? allCafes.filter((c) => isOpenNow(c.opening_hours)) : allCafes
-  const total = openNow ? cafes.length : (data?.total ?? 0)
-  const totalPages = openNow ? 1 : Math.ceil((data?.total ?? 0) / PAGE_SIZE)
+  let cafes = data?.results ?? []
+  if (openNow) cafes = cafes.filter((c) => isOpenNow(c.opening_hours))
+  if (showSaved) cafes = cafes.filter((c) => favorites.has(c.id))
+  const total = clientFilter ? cafes.length : (data?.total ?? 0)
+  const totalPages = clientFilter ? 1 : Math.ceil((data?.total ?? 0) / PAGE_SIZE)
 
   function resetFilters() {
     setSelectedTags([])
@@ -86,6 +93,7 @@ export function ListingPage() {
     setMinRating(undefined)
     setOrdering('rating')
     setOpenNow(false)
+    setShowSaved(false)
     setSearchInput('')
     setQ('')
     setPage(0)
@@ -98,7 +106,7 @@ export function ListingPage() {
     setPage(0)
   }
 
-  const hasFilters = selectedTags.length > 0 || district || minRating || q || openNow || ordering !== 'rating'
+  const hasFilters = selectedTags.length > 0 || district || minRating || q || openNow || showSaved || ordering !== 'rating'
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -174,6 +182,19 @@ export function ListingPage() {
               <span className={`w-1.5 h-1.5 rounded-full ${openNow ? 'bg-white' : 'bg-emerald-500'}`} />
               Open now
             </button>
+            <button
+              onClick={() => { setShowSaved((v) => !v); setPage(0) }}
+              className={`text-sm px-3 py-1.5 rounded-full border transition-colors font-medium flex items-center gap-1.5 ${
+                showSaved
+                  ? 'bg-red-500 text-white border-red-500'
+                  : 'bg-white text-stone-600 border-stone-200 hover:border-red-400 hover:text-red-500'
+              }`}
+            >
+              <svg className={`w-3.5 h-3.5 ${showSaved ? 'fill-white text-white' : 'fill-none text-red-400'}`} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              Saved{favorites.size > 0 && ` (${favorites.size})`}
+            </button>
           </div>
 
           {/* District + rating + sort */}
@@ -220,6 +241,17 @@ export function ListingPage() {
             )}
           </div>
         </div>
+
+        {/* Stats bar */}
+        {allData && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-400 mb-4">
+            <span>{allData.total} cafes</span>
+            <span>{new Set(allData.results.map((c) => c.district).filter(Boolean)).size} districts</span>
+            {allData.results.some((c) => c.accepts_bookings) && (
+              <span>{allData.results.filter((c) => c.accepts_bookings).length} bookable</span>
+            )}
+          </div>
+        )}
 
         {/* Results */}
         {isLoading && (
